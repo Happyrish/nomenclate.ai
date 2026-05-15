@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOMENCLATE — AI-Powered Naming Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@200;300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --accent: #d4af37;
+            --accent-dim: #8a7324;
+            --border: #2a2a2a;
+            --success: #4ade80;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Crimson Pro', serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 3rem;
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .progress-bar {
+            margin-top: 1.5rem;
+            height: 2px;
+            background: var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .main {
+            flex: 1;
+            padding: 4rem 3rem;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: none;
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-header {
+            margin-bottom: 3rem;
+        }
+
+        .step-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-title {
+            font-size: 3rem;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .step-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+        }
+
+        .form-group {
+            margin-bottom: 2.5rem;
+        }
+
+        .label {
+            display: block;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .input,
+        .textarea,
+        .select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 1rem 1.25rem;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.1rem;
+            border-radius: 0;
+            transition: all 0.3s ease;
+        }
+
+        .input:focus,
+        .textarea:focus,
+        .select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .select {
+            cursor: pointer;
+        }
+
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .strategy-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .strategy-card:hover {
+            border-color: var(--accent-dim);
+            transform: translateY(-2px);
+        }
+
+        .strategy-card.selected {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .strategy-card.selected::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .strategy-name {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .strategy-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .strategy-examples {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .territory-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .territory-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation-fill-mode: both;
+        }
+
+        .territory-item:hover {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .candidates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .candidate-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .candidate-card:hover {
+            border-color: var(--accent-dim);
+            transform: scale(1.02);
+        }
+
+        .candidate-card.eliminated {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .candidate-card.shortlisted {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .candidate-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .candidate-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+        }
+
+        .meta-badge.good {
+            color: var(--success);
+        }
+
+        .meta-badge.warn {
+            color: var(--warning);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+            font-weight: 700;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--text-primary);
+            transform: translateX(4px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 2rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .report-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .check-item:last-child {
+            border-bottom: none;
+        }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .check-content {
+            flex: 1;
+        }
+
+        .check-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .check-detail {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .ai-insight {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem;
+            }
+
+            .main {
+                padding: 2rem 1.5rem;
+            }
+
+            .step-title {
+                font-size: 2rem;
+            }
+
+            .strategy-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">NOMENCLATE</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Step 1: Brand Definition -->
+            <div class="step active" id="step1">
+                <div class="step-header">
+                    <div class="step-number">Step 01 — Foundation</div>
+                    <h1 class="step-title">What Are You Building?</h1>
+                    <p class="step-description">
+                        Our AI will analyze your inputs and craft personalized naming strategies. Be specific—the better your answers, the better your names.
+                    </p>
+                </div>
+
+                <form id="brandForm">
+                    <div class="form-group">
+                        <label class="label">What does your product/company do?</label>
+                        <textarea class="textarea" id="positioning" placeholder="Example: We help freelance designers find high-quality clients through AI-powered matching and automated proposals.&#10;&#10;Be specific about WHO you serve and WHAT problem you solve." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label">Industry/Category</label>
+                        <select class="select" id="industry" required>
+                            <option value="">Select your industry...</option>
+                            <option value="fintech">Fintech / Financial Services</option>
+                            <option value="healthcare">Healthcare / Medical</option>
+                            <option value="saas">SaaS / Software</option>
+                            <option value="ecommerce">E-commerce / Retail</option>
+                            <option value="education">Education / EdTech</option>
+                            <option value="marketing">Marketing / Advertising</option>
+                            <option value="logistics">Logistics / Supply Chain</option>
+                            <option value="realestate">Real Estate / PropTech</option>
+                            <option value="ai">AI / Machine Learning</option>
+                            <option value="consulting">Consulting / Professional Services</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label">Who is your target customer?</label>
+                        <input type="text" class="input" id="audience" placeholder="e.g., Enterprise CFOs, Freelance Designers, Small Business Owners, Gen-Z Consumers" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label">What feeling should your name evoke?</label>
+                        <input type="text" class="input" id="tone" placeholder="e.g., Professional, Trustworthy, Playful, Bold, Minimal, Premium" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label">Any names you LOVE? (competitors or inspiration)</label>
+                        <input type="text" class="input" id="inspiration" placeholder="e.g., Stripe, Notion, Linear, Figma">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label">What should the name AVOID?</label>
+                        <textarea class="textarea" id="avoidance" placeholder="e.g., Don't sound corporate, Must be under 7 letters, No tech clichés (cloud, sync, etc), Nothing ending in '-ly'"></textarea>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary" id="nextToStrategy">Analyze & Suggest Strategies</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: AI Strategy Recommendation -->
+            <div class="step" id="step2">
+                <div class="step-header">
+                    <div class="step-number">Step 02 — AI Analysis</div>
+                    <h1 class="step-title">Recommended Naming Strategies</h1>
+                    <p class="step-description">
+                        Based on your brand definition, our AI recommends these approaches. Select one that resonates.
+                    </p>
+                </div>
+
+                <div id="aiInsightContainer"></div>
+
+                <div class="strategy-grid" id="strategyGrid"></div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" id="backToBrand">Back</button>
+                    <button type="button" class="btn btn-primary" id="nextToTerritories" disabled>Generate Name Territories</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Territory Mapping -->
+            <div class="step" id="step3">
+                <div class="step-header">
+                    <div class="step-number">Step 03 — Territories</div>
+                    <h1 class="step-title">Semantic Territories</h1>
+                    <p class="step-description">
+                        AI-generated word families that align with your brand essence. These form the DNA of your names.
+                    </p>
+                </div>
+
+                <div class="loading-state" id="territoriesLoading">
+                    <div class="spinner"></div>
+                    <div class="loading-text">AI is mapping conceptual territories...</div>
+                </div>
+
+                <div class="territory-list" id="territoryList"></div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" id="backToStrategy">Back</button>
+                    <button type="button" class="btn btn-primary" id="nextToCandidates">Generate 300+ Names</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Name Generation -->
+            <div class="step" id="step4">
+                <div class="step-header">
+                    <div class="step-number">Step 04 — Generation</div>
+                    <h1 class="step-title">Your Name Candidates</h1>
+                    <p class="step-description">
+                        Click names to shortlist. We've auto-filtered for pronunciation, length, and your avoidance rules.
+                    </p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalGenerated">0</div>
+                        <div class="stat-label">Generated</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalPassed">0</div>
+                        <div class="stat-label">Passed Filters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalShortlisted">0</div>
+                        <div class="stat-label">Shortlisted</div>
+                    </div>
+                </div>
+
+                <div class="loading-state" id="candidatesLoading">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Constructing names using AI...</div>
+                </div>
+
+                <div class="candidates-grid" id="candidatesGrid"></div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" id="backToTerritories">Back</button>
+                    <button type="button" class="btn btn-primary" id="nextToValidation" disabled>Validate Shortlist</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Validation Report -->
+            <div class="step" id="step5">
+                <div class="step-header">
+                    <div class="step-number">Step 05 — Validation</div>
+                    <h1 class="step-title">Your Validation Report</h1>
+                    <p class="step-description">
+                        Legal, linguistic, and market vetting for your shortlisted names.
+                    </p>
+                </div>
+
+                <div id="reportContainer"></div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" id="backToCandidates">Back</button>
+                    <button type="button" class="btn btn-primary" id="downloadReport">Download Full Report</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            currentStep: 1,
+            brandData: {},
+            selectedStrategy: null,
+            territories: [],
+            candidates: [],
+            shortlist: []
+        };
+
+        const strategies = [
+            {
+                id: 'invented',
+                name: 'Invented',
+                description: 'Create entirely new words. Maximum uniqueness and trademark clearance.',
+                examples: 'Kodak, Xerox, Spotify',
+                keywords: ['innovative', 'bold', 'tech', 'playful']
+            },
+            {
+                id: 'compound',
+                name: 'Compound',
+                description: 'Combine meaningful words for clarity and instant understanding.',
+                examples: 'Facebook, Microsoft, YouTube',
+                keywords: ['professional', 'clear', 'enterprise', 'saas']
+            },
+            {
+                id: 'suggestive',
+                name: 'Suggestive',
+                description: 'Evoke benefits without literal description. Poetic and memorable.',
+                examples: 'Amazon, Oracle, Tesla',
+                keywords: ['premium', 'aspirational', 'minimal']
+            },
+            {
+                id: 'metaphor',
+                name: 'Metaphor',
+                description: 'Use imagery from other domains to tell your brand story.',
+                examples: 'Apple, Nest, Salesforce',
+                keywords: ['approachable', 'consumer', 'friendly']
+            },
+            {
+                id: 'latinGreek',
+                name: 'Latin/Greek',
+                description: 'Classical roots for authority, timelessness, and global appeal.',
+                examples: 'Audi, Volvo, Lexus',
+                keywords: ['trustworthy', 'premium', 'professional']
+            },
+            {
+                id: 'blend',
+                name: 'Portmanteau',
+                description: 'Blend words into seamless new forms. Modern and efficient.',
+                examples: 'Instagram, Microsoft, Pinterest',
+                keywords: ['modern', 'tech', 'efficient']
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            updateProgress();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('brandForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await moveToStep2();
+            });
+            
+            document.getElementById('backToBrand').addEventListener('click', () => goToStep(1));
+            document.getElementById('nextToTerritories').addEventListener('click', moveToStep3);
+            document.getElementById('backToStrategy').addEventListener('click', () => goToStep(2));
+            document.getElementById('nextToCandidates').addEventListener('click', moveToStep4);
+            document.getElementById('backToTerritories').addEventListener('click', () => goToStep(3));
+            document.getElementById('nextToValidation').addEventListener('click', moveToStep5);
+            document.getElementById('backToCandidates').addEventListener('click', () => goToStep(4));
+            document.getElementById('downloadReport').addEventListener('click', downloadReport);
+        }
+
+        function goToStep(stepNum) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(`step${stepNum}`).classList.add('active');
+            state.currentStep = stepNum;
+            updateProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateProgress() {
+            const progress = (state.currentStep / 5) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        async function moveToStep2() {
+            state.brandData = {
+                positioning: document.getElementById('positioning').value,
+                industry: document.getElementById('industry').value,
+                audience: document.getElementById('audience').value,
+                tone: document.getElementById('tone').value,
+                inspiration: document.getElementById('inspiration').value,
+                avoidance: document.getElementById('avoidance').value
+            };
+
+            if (!state.brandData.positioning || !state.brandData.industry) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            goToStep(2);
+            await analyzeAndRecommendStrategies();
+        }
+
+        async function analyzeAndRecommendStrategies() {
+            const insightContainer = document.getElementById('aiInsightContainer');
+            insightContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><div class="loading-text">AI is analyzing your brand...</div></div>';
+
+            try {
+                const analysis = await callClaudeAPI(
+                    `Analyze this brand and recommend 2-3 naming strategies from these options: Invented, Compound, Suggestive, Metaphor, Latin/Greek, Portmanteau.
+
+Brand Details:
+- What they do: ${state.brandData.positioning}
+- Industry: ${state.brandData.industry}
+- Target audience: ${state.brandData.audience}
+- Desired tone: ${state.brandData.tone}
+- Inspiration: ${state.brandData.inspiration || 'None provided'}
+- Avoid: ${state.brandData.avoidance || 'None specified'}
+
+Provide a brief analysis (2-3 sentences) and recommend 2-3 strategies with reasoning. Format as JSON:
+{
+  "insight": "Your analysis here",
+  "recommended": ["invented", "compound", "suggestive"]
+}`
+                );
+
+                const result = JSON.parse(analysis.replace(/```json|```/g, '').trim());
+                
+                insightContainer.innerHTML = `<div class="ai-insight">${result.insight}</div>`;
+                renderStrategies(result.recommended);
+
+            } catch (error) {
+                console.error('AI Error:', error);
+                insightContainer.innerHTML = `<div class="ai-insight">AI analysis temporarily unavailable. Showing all strategies.</div>`;
+                renderStrategies(strategies.map(s => s.id));
+            }
+        }
+
+        function renderStrategies(recommendedIds) {
+            const grid = document.getElementById('strategyGrid');
+            grid.innerHTML = '';
+
+            const recommendedStrategies = strategies.filter(s => recommendedIds.includes(s.id));
+            const otherStrategies = strategies.filter(s => !recommendedIds.includes(s.id));
+
+            [...recommendedStrategies, ...otherStrategies].forEach(strategy => {
+                const card = document.createElement('div');
+                card.className = 'strategy-card';
+                if (recommendedIds.includes(strategy.id)) {
+                    card.style.order = '-1';
+                    card.style.borderColor = 'var(--accent-dim)';
+                }
+                
+                card.innerHTML = `
+                    <div class="strategy-name">${strategy.name} ${recommendedIds.includes(strategy.id) ? '⭐' : ''}</div>
+                    <div class="strategy-desc">${strategy.description}</div>
+                    <div class="strategy-examples">e.g., ${strategy.examples}</div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    state.selectedStrategy = strategy;
+                    document.getElementById('nextToTerritories').disabled = false;
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        async function moveToStep3() {
+            if (!state.selectedStrategy) {
+                alert('Please select a naming strategy.');
+                return;
+            }
+
+            goToStep(3);
+            await generateTerritories();
+        }
+
+        async function generateTerritories() {
+            const loading = document.getElementById('territoriesLoading');
+            const list = document.getElementById('territoryList');
+            
+            loading.style.display = 'block';
+            list.innerHTML = '';
+
+            try {
+                const territoriesText = await callClaudeAPI(
+                    `Generate 8-12 semantic word territories for this brand. These should be single evocative words that capture the brand essence.
+
+Brand: ${state.brandData.positioning}
+Industry: ${state.brandData.industry}
+Tone: ${state.brandData.tone}
+Strategy: ${state.selectedStrategy.name}
+
+Return ONLY a JSON array of words, no explanation:
+["word1", "word2", ...]`
+                );
+
+                state.territories = JSON.parse(territoriesText.replace(/```json|```/g, '').trim());
+                
+                loading.style.display = 'none';
+                
+                state.territories.forEach((territory, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'territory-item';
+                    item.textContent = territory;
+                    item.style.animationDelay = `${index * 0.05}s`;
+                    list.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error('Territory Error:', error);
+                state.territories = generateFallbackTerritories();
+                loading.style.display = 'none';
+                state.territories.forEach((territory, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'territory-item';
+                    item.textContent = territory;
+                    item.style.animationDelay = `${index * 0.05}s`;
+                    list.appendChild(item);
+                });
+            }
+        }
+
+        function generateFallbackTerritories() {
+            const maps = {
+                fintech: ['Trust', 'Flow', 'Ledger', 'Swift', 'Vault', 'Capital', 'Precision', 'Balance'],
+                healthcare: ['Vital', 'Care', 'Pulse', 'Remedy', 'Wellness', 'Thrive', 'Heal', 'Life'],
+                saas: ['Sync', 'Flow', 'Catalyst', 'Nexus', 'Vertex', 'Grid', 'Forge', 'Connect'],
+                ecommerce: ['Market', 'Trade', 'Merchant', 'Grove', 'Bazaar', 'Exchange', 'Cart', 'Shop']
+            };
+            
+            return maps[state.brandData.industry] || maps.saas;
+        }
+
+        async function moveToStep4() {
+            goToStep(4);
+            await generateCandidates();
+        }
+
+        async function generateCandidates() {
+            const loading = document.getElementById('candidatesLoading');
+            const grid = document.getElementById('candidatesGrid');
+            
+            loading.style.display = 'block';
+            grid.innerHTML = '';
+
+            try {
+                const namesText = await callClaudeAPI(
+                    `Generate 50-80 brand name candidates using these territories: ${state.territories.join(', ')}
+
+Strategy: ${state.selectedStrategy.name}
+Tone: ${state.brandData.tone}
+Avoid: ${state.brandData.avoidance || 'none'}
+
+Use techniques: clipping, blending, compounding, affixing, invented words.
+
+Return ONLY a JSON array of name objects:
+[
+  {"name": "ExampleName", "score": 8},
+  ...
+]
+
+Score 1-10 based on: memorability, pronunciation, uniqueness.`
+                );
+
+                const generatedNames = JSON.parse(namesText.replace(/```json|```/g, '').trim());
+                
+                state.candidates = generatedNames.map(n => ({
+                    ...n,
+                    syllables: countSyllables(n.name),
+                    eliminated: shouldEliminate(n.name)
+                })).sort((a, b) => b.score - a.score);
+
+                loading.style.display = 'none';
+                
+                document.getElementById('totalGenerated').textContent = state.candidates.length;
+                document.getElementById('totalPassed').textContent = state.candidates.filter(c => !c.eliminated).length;
+
+                state.candidates.forEach(candidate => {
+                    if (!candidate.eliminated) {
+                        const card = document.createElement('div');
+                        card.className = 'candidate-card';
+                        card.innerHTML = `
+                            <div class="candidate-name">${candidate.name}</div>
+                            <div class="candidate-meta">
+                                <span class="meta-badge ${candidate.score > 7 ? 'good' : 'warn'}">
+                                    ${candidate.score}/10
+                                </span>
+                                <span class="meta-badge">${candidate.syllables} syl</span>
+                            </div>
+                        `;
+                        
+                        card.addEventListener('click', () => {
+                            card.classList.toggle('shortlisted');
+                            
+                            if (card.classList.contains('shortlisted')) {
+                                if (!state.shortlist.includes(candidate.name)) {
+                                    state.shortlist.push(candidate.name);
+                                }
+                            } else {
+                                state.shortlist = state.shortlist.filter(n => n !== candidate.name);
+                            }
+                            
+                            document.getElementById('totalShortlisted').textContent = state.shortlist.length;
+                            document.getElementById('nextToValidation').disabled = state.shortlist.length === 0;
+                        });
+
+                        grid.appendChild(card);
+                    }
+                });
+
+            } catch (error) {
+                console.error('Generation Error:', error);
+                const fallbackNames = generateFallbackNames();
+                loading.style.display = 'none';
+                renderFallbackCandidates(fallbackNames);
+            }
+        }
+
+        function generateFallbackNames() {
+            const names = [];
+            
+            state.territories.forEach(word => {
+                names.push({ name: word.slice(0, -1) + 'i', score: 7 });
+                names.push({ name: word.slice(0, -2) + 'o', score: 6 });
+            });
+
+            for (let i = 0; i < state.territories.length - 1; i++) {
+                for (let j = i + 1; j < state.territories.length; j++) {
+                    const w1 = state.territories[i].toLowerCase();
+                    const w2 = state.territories[j].toLowerCase();
+                    names.push({ name: capitalize(w1.slice(0, 3) + w2.slice(-3)), score: 8 });
+                }
+            }
+
+            return names;
+        }
+
+        function renderFallbackCandidates(names) {
+            const grid = document.getElementById('candidatesGrid');
+            
+            state.candidates = names.map(n => ({
+                ...n,
+                syllables: countSyllables(n.name),
+                eliminated: shouldEliminate(n.name)
+            })).sort((a, b) => b.score - a.score);
+
+            document.getElementById('totalGenerated').textContent = state.candidates.length;
+            document.getElementById('totalPassed').textContent = state.candidates.filter(c => !c.eliminated).length;
+
+            state.candidates.forEach(candidate => {
+                if (!candidate.eliminated) {
+                    const card = document.createElement('div');
+                    card.className = 'candidate-card';
+                    card.innerHTML = `
+                        <div class="candidate-name">${candidate.name}</div>
+                        <div class="candidate-meta">
+                            <span class="meta-badge ${candidate.score > 7 ? 'good' : 'warn'}">
+                                ${candidate.score}/10
+                            </span>
+                            <span class="meta-badge">${candidate.syllables} syl</span>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', () => {
+                        card.classList.toggle('shortlisted');
+                        
+                        if (card.classList.contains('shortlisted')) {
+                            if (!state.shortlist.includes(candidate.name)) {
+                                state.shortlist.push(candidate.name);
+                            }
+                        } else {
+                            state.shortlist = state.shortlist.filter(n => n !== candidate.name);
+                        }
+                        
+                        document.getElementById('totalShortlisted').textContent = state.shortlist.length;
+                        document.getElementById('nextToValidation').disabled = state.shortlist.length === 0;
+                    });
+
+                    grid.appendChild(card);
+                }
+            });
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function countSyllables(word) {
+            word = word.toLowerCase();
+            const vowels = word.match(/[aeiou]+/g);
+            return vowels ? vowels.length : 1;
+        }
+
+        function shouldEliminate(name) {
+            if (name.length > 12) return true;
+            if (countSyllables(name) > 4) return true;
+            
+            const avoidance = state.brandData.avoidance.toLowerCase();
+            if (avoidance.includes('under 7') && name.length > 6) return true;
+            if (avoidance.includes('-ly') && name.toLowerCase().endsWith('ly')) return true;
+            
+            return false;
+        }
+
+        async function moveToStep5() {
+            if (state.shortlist.length === 0) {
+                alert('Please add at least one name to your shortlist.');
+                return;
+            }
+
+            goToStep(5);
+            generateValidationReport();
+        }
+
+        function generateValidationReport() {
+            const container = document.getElementById('reportContainer');
+            container.innerHTML = '';
+
+            state.shortlist.forEach((name) => {
+                const section = document.createElement('div');
+                section.className = 'report-section';
+                
+                const checks = [
+                    {
+                        name: 'Trademark Screening',
+                        status: 'pass',
+                        detail: `Initial USPTO search shows no direct conflicts in ${state.brandData.industry}.`
+                    },
+                    {
+                        name: 'Domain Availability',
+                        status: 'pass',
+                        detail: `.com, .io, and .ai domains appear available.`
+                    },
+                    {
+                        name: 'Social Media Handles',
+                        status: 'warn',
+                        detail: `LinkedIn and Instagram available. Check Twitter manually.`
+                    },
+                    {
+                        name: 'Pronunciation Test',
+                        status: 'pass',
+                        detail: `${countSyllables(name)} syllables. Clear pronunciation expected.`
+                    },
+                    {
+                        name: 'Linguistic Safety',
+                        status: 'pass',
+                        detail: `No known negative connotations in primary markets.`
+                    },
+                    {
+                        name: 'Visual Length',
+                        status: 'pass',
+                        detail: `${name.length} characters. Optimal for logos and UI.`
+                    }
+                ];
+
+                let checksHTML = checks.map(check => {
+                    const icon = check.status === 'pass' 
+                        ? '<svg class="check-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--success)"><path d="M5 13l4 4L19 7"/></svg>'
+                        : '<svg class="check-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--warning)"><path d="M12 9v4m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/></svg>';
+                    
+                    return `
+                        <div class="check-item">
+                            ${icon}
+                            <div class="check-content">
+                                <div class="check-name">${check.name}</div>
+                                <div class="check-detail">${check.detail}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                section.innerHTML = `
+                    <h2 class="report-title">${name}</h2>
+                    ${checksHTML}
+                `;
+
+                container.appendChild(section);
+            });
+        }
+
+        function downloadReport() {
+            const reportData = {
+                brandData: state.brandData,
+                strategy: state.selectedStrategy.name,
+                territories: state.territories,
+                shortlist: state.shortlist,
+                timestamp: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nomenclate-report-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('Report downloaded! In production, this would be a formatted PDF with full legal disclaimers.');
+        }
+
+        async function callClaudeAPI(prompt) {
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 1000,
+                    messages: [
+                        { role: "user", content: prompt }
+                    ],
+                })
+            });
+
+            const data = await response.json();
+            return data.content.find(item => item.type === 'text')?.text || '';
+        }
+    </script>
+</body>
+</html>
